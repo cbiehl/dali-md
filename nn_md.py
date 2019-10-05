@@ -168,20 +168,15 @@ class NNMD(object):
       raise ValueError("Unsupported rank: {}".format(emb_rank))
     return tf.boolean_mask(flattened_emb, tf.reshape(text_len_mask, [num_sentences * max_sentence_length]))
 
-
-
   def load_eval_data(self):
     if self.eval_data is None:
       def load_line(line):
         example = json.loads(line)
         return self.tensorize_example(example, is_training=False), example
 
-      with open(self.config["eval_path"]) as f:
-        self.eval_data = [load_line(l) for l in f.readlines()]
-
+    with open(self.config["eval_path"]) as f:
+      self.eval_data = [load_line(l) for l in f.readlines()]
       print("Loaded {} eval examples.".format(len(self.eval_data)))
-
-
 
   def evaluate(self, session):
     self.load_eval_data()
@@ -219,3 +214,23 @@ class NNMD(object):
     summary_dict["Mention precision"] = m_p
 
     return util.make_summary(summary_dict), m_r
+    
+  def predict(self, session, filepath):
+    self.load_eval_data()
+    cnt = 0
+    with open(filepath, 'w+') as f:
+      for example_num, (tensorized_example, example) in enumerate(self.eval_data):
+        feed_dict = {i:t for i,t in zip(self.input_tensors, tensorized_example)}
+        top_span_starts, top_span_ends = session.run(self.predictions, feed_dict=feed_dict)
+
+        pred_mentions = [[int(s),int(e)] for s,e in zip(top_span_starts,top_span_ends)]
+        doc = dict()
+        doc['clusters'] = pred_mentions
+        doc['doc_key'] = example['doc_key']
+        doc['sentences'] = example['sentences']
+        
+        f.write(json.dumps(doc))
+        cnt += 1
+        
+    print("DONE with prediction. Wrote {} examples to {}".format(cnt, filepath))
+    

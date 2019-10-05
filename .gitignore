@@ -1,0 +1,5 @@
+logs/
+*.pyc
+*.so
+*.hdf5
+.DS_Store
