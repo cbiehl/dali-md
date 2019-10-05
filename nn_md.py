@@ -230,6 +230,7 @@ class NNMD(object):
         doc['sentences'] = example['sentences']
         
         f.write(json.dumps(doc))
+        f.write('\n')
         cnt += 1
         
     print("DONE with prediction. Wrote {} examples to {}".format(cnt, filepath))
